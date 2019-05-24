@@ -1,0 +1,179 @@
+#!/usr/bin/env node
+
+/**
+ * Module dependencies.
+ */
+
+var app = require('../app');
+var debug = require('debug')('leafletmongodbserver:server');
+var http = require('http');
+
+var admin = require("firebase-admin");
+
+var serviceAccount = require("../leafletappnotification-firebase-adminsdk-n1zjt-cd7da2852a.json");
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+  databaseURL: "https://leafletappnotification.firebaseio.com"
+});
+
+// This registration token comes from the client FCM SDKs.
+var registrationToken = 'cOQZOD3Jv7c:APA91bH7Kl-m9fC_DXdfZx3RgY9EZo0MwUnjqklN2kqpjzC5tVi96UebbUMgOX7mZal3ZhI44U2FDVUl8eAW_ldZAPSKqTmUWNmsAfeZWGI2Y4EU8fM_oMXrR7UN3O3JE3bkKMJ_ChCu';
+
+var message = {
+  data: {
+    score: '850',
+    time: '2:45'
+  },
+  notification:{
+	  title: 'This is a test from server',
+	  body: 'This is the body of the message'
+  },
+  token: registrationToken
+};
+
+// Send a message to the device corresponding to the provided
+// registration token.
+admin.messaging().send(message)
+  .then((response) => {
+    // Response is a message ID string.
+    console.log('Successfully sent message:', response);
+  })
+  .catch((error) => {
+    console.log('Error sending message:', error);
+  });
+
+
+//const SMTPServer = require("smtp-server").SMTPServer;
+
+/**
+ * Create SMTP server
+ */
+/*const smtpServer = new SMTPServer(
+  {
+    name: 'http://cryptic-bastion-18400.herokuapp.com',
+    onAuth(auth, session, callback) {
+      if (auth.username !== "ha.younes72" || auth.password !== "hAjnFV12bY") {
+        return callback(new Error("Invalid username or password"));
+      }
+      callback(null, { user: 123 }); // where 123 is the user id or similar property
+    },
+    onConnect(session, callback) {
+      if (session.remoteAddress === "127.0.0.1") {
+        return callback(new Error("No connections from localhost allowed"));
+      }
+      return callback(); // Accept the connection
+    }
+  }
+);
+
+smtpServer.on("error", err => {
+  console.log("Mail Error %s", err.message);
+});
+
+smtpServer.on("listening", onSMTPListening);
+
+var smtpPort = normalizePort('3211');
+smtpServer.listen(smtpPort)
+console.log('The SMTP server is running on port: ', smtpPort)
+/**
+ * Event listener for SMTP server "listening" event.
+ */
+/*
+function onSMTPListening() {
+  var addr = smtpServer.address();
+  var bind = typeof addr === 'string'
+    ? 'pipe ' + addr
+    : 'port ' + addr.port;
+  debug('SMTP Listening on ' + bind);
+  console.log('SMTP Listening on ' , bind)
+}
+*/
+
+/**
+ * Get port from environment and store in Express.
+ */
+
+var port = normalizePort(process.env.PORT || '3210');
+app.set('port', port);
+
+/**
+ * Create HTTP server.
+ */
+
+var server = http.createServer(app);
+
+/**
+ * Listen on provided port, on all network interfaces.
+ */
+const hostname = 'localhost';
+server.listen(port, hostname, () => {
+  console.log(`Server running at http://${hostname}:${port}/`);
+});
+
+
+//server.listen(port);
+server.on('error', onError);
+server.on('listening', onListening);
+
+//console.log('The server is running on port: ', port)
+
+/**
+ * Normalize a port into a number, string, or false.
+ */
+
+function normalizePort(val) {
+  var port = parseInt(val, 10);
+
+  if (isNaN(port)) {
+    // named pipe
+    return val;
+  }
+
+  if (port >= 0) {
+    // port number
+    return port;
+  }
+
+  return false;
+}
+
+/**
+ * Event listener for HTTP server "error" event.
+ */
+
+function onError(error) {
+  if (error.syscall !== 'listen') {
+    throw error;
+  }
+
+  var bind = typeof port === 'string'
+    ? 'Pipe ' + port
+    : 'Port ' + port;
+
+  // handle specific listen errors with friendly messages
+  switch (error.code) {
+    case 'EACCES':
+      console.error(bind + ' requires elevated privileges');
+      process.exit(1);
+      break;
+    case 'EADDRINUSE':
+      console.error(bind + ' is already in use');
+      process.exit(1);
+      break;
+    default:
+      throw error;
+  }
+}
+
+/**
+ * Event listener for HTTP server "listening" event.
+ */
+
+function onListening() {
+  var addr = server.address();
+  var bind = typeof addr === 'string'
+    ? 'pipe ' + addr
+    : 'port ' + addr.port;
+  debug('Listening on ' + bind);
+}
