@@ -66,7 +66,8 @@ exports.User_Signup = (req, res) => {
                 bcrypt.hash(req.body.password, 10, (err, hash) => {
                     if (err) {
                         res.status(500).send({
-                            error: err
+                            error: err,
+                            message: "Internal Error! Please Try Later!"
                         })
                     } else {
                         newUsr = new User({
@@ -88,7 +89,9 @@ exports.User_Signup = (req, res) => {
                             .save(function (err) {
                                 if (err) {
                                     console.log('Saving Token Error: ', err.message)
-                                    return res.status(500).send({ msg: err.message });
+                                    return res.status(500).send({
+                                        message: "Internal Error! Please Try Later!"
+                                    });
                                 }
 
                                 // Send the email
@@ -99,7 +102,7 @@ exports.User_Signup = (req, res) => {
                                         //secure: false,
                                         host: 'mail.petanux.com',
                                         port: 587,
-                                        
+
                                         //service: 'Sendgrid',
                                         //service: 'Gmail',
                                         //secureConnection: true,
@@ -107,9 +110,9 @@ exports.User_Signup = (req, res) => {
                                             user: 'marketing@petanux.com',//process.env.SENDGRID_USERNAME,
                                             pass: '8892PNX9935'//process.env.SENDGRID_PASSWORD
                                         },
-					tls: {
-        				    rejectUnauthorized: false
-    					}
+                                        tls: {
+                                            rejectUnauthorized: false
+                                        }
 
                                     }
                                 );
@@ -127,11 +130,15 @@ exports.User_Signup = (req, res) => {
                                 transporter.sendMail(mailOptions, function (err) {
                                     if (err) {
                                         console.log("Error Sending MY Mail: ", err.message)
-                                        return res.status(500).send({ msg: err.message });
+                                        return res.status(500).send({
+                                            message: "Internal Error! Please Try Later!"
+                                        });
                                     }
 
                                     console.log("Mail Sent: ")
-                                    res.status(200).send('A verification email has been sent to ' + newUsr.email + '.');
+                                    res.status(200).send({
+                                        message: 'A verification email has been sent to the given mail, you have to confirm it to continue.'
+                                    });
 
                                     newUsr
                                         .save()
