@@ -289,8 +289,9 @@ exports.User_Login = (req, res) => {
             }
         })
         .catch(err => {
-            return res.status(401).send({ success: false, message: "Network Error! Please try again!" })
             console.log(err)
+            return res.status(401).send({ success: false, message: "Network Error! Please try again!" })
+            
         })
 }
 
