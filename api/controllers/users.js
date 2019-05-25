@@ -244,7 +244,7 @@ exports.User_Login = (req, res) => {
     User.find(usr)
         .exec()
         .then(doc => {
-            if (doc.length < 0) {
+            if (doc.length < 1) {
                 console.log('Invalid Email and Password Combination')
                 return res.status(401).send({ success: false, message: "Invalid Email and Password Combination" })
             } else {
