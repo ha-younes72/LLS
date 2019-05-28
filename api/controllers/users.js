@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken')
 
 const User = require('../models/user')
 const Token = require('../models/verificationToken')
+const UnStore = require('../models/unVerifiedStore')
 var crypto = require('crypto');
 var nodemailer = require('nodemailer');
 
@@ -70,20 +71,85 @@ exports.User_Signup = (req, res) => {
                             message: "Internal Error! Please Try Later!"
                         })
                     } else {
+
+                        // Send the email
+                        var transporter = nodemailer.createTransport(
+                            {
+                                //host: "http://cryptic-bastion-18400.herokuapp.com",
+                                //port: 3211,
+                                //secure: false,
+                                host: 'mail.petanux.com',
+                                port: 587,
+
+                                //service: 'Sendgrid',
+                                //service: 'Gmail',
+                                //secureConnection: true,
+                                auth: {
+                                    user: 'marketing@petanux.com',//process.env.SENDGRID_USERNAME,
+                                    pass: '8892PNX9935'//process.env.SENDGRID_PASSWORD
+                                },
+                                tls: {
+                                    rejectUnauthorized: false
+                                }
+
+                            }
+                        );
+
                         newUsr = new User({
                             _id: new mongoose.Types.ObjectId(),
                             fname: req.body.fname,
                             email: req.body.email,
                             lname: req.body.lname,
-                            password: hash
+                            password: hash,
+                            roles: req.body.roles
                         });
 
-                        var token = new Token(
-                            {
+                        if (req.body.storeName) {
+                            const unStore = new UnStore({
                                 _userId: newUsr._id,
+                                name: req.body.storeName,
+                                address: req.body.storeAddress,
                                 token: crypto.randomBytes(16).toString('hex')
-                            }
-                        );
+                            })
+                            unStore.save(function (err) {
+                                if (err) {
+                                    console.log('Saving Store Info Error: ', err.message)
+                                    return res.status(500).send({
+                                        message: 'Saving Store Info Error, Please Try Later.'
+                                    })
+                                }
+                                var mailContext = 'Hello,\n\n';
+                                mailContext += 'Please verify the Store \n'
+                                mailContext += 'Store Name: ' + req.body.storeName + '\n'
+                                mailContext += 'Store Address: ' + req.body.storeAddress + '\n'
+                                mailContext += 'Owner Name: ' + req.body.fname + ' '+ req.body.lname + '\n'
+                                mailContext += 'by clicking below url:\n'
+                                mailContext += 'http:\/\/'+req.headers.host + '\/stores\/confirmation\/' + unStore.token + '.\n'
+                                console.log("I'm Sending Mail: ", mailContext)
+
+                                var mailOptions = {
+                                    from: 'Petanux Marketing <marketing@petanux.com>',
+                                    to: 'ha.younes72@gmail.com',
+                                    subject: 'New Store Verification',
+                                    text: mailContext
+                                };
+                                transporter.sendMail(mailOptions, function (err) {
+                                    if (err) {
+                                        console.log("Error Sending MY Mail: ", err.message)
+                                        return res.status(500).send({
+                                            message: "Internal Error! Please Try Later!"
+                                        });
+                                    }
+                                    console.log("Mail Sent: ")
+                                });
+
+                            })
+
+                        }
+                        var token = new Token({
+                            _userId: newUsr._id,
+                            token: crypto.randomBytes(16).toString('hex')
+                        });
                         // Save the verification token
                         token
                             .save(function (err) {
@@ -94,28 +160,7 @@ exports.User_Signup = (req, res) => {
                                     });
                                 }
 
-                                // Send the email
-                                var transporter = nodemailer.createTransport(
-                                    {
-                                        //host: "http://cryptic-bastion-18400.herokuapp.com",
-                                        //port: 3211,
-                                        //secure: false,
-                                        host: 'mail.petanux.com',
-                                        port: 587,
 
-                                        //service: 'Sendgrid',
-                                        //service: 'Gmail',
-                                        //secureConnection: true,
-                                        auth: {
-                                            user: 'marketing@petanux.com',//process.env.SENDGRID_USERNAME,
-                                            pass: '8892PNX9935'//process.env.SENDGRID_PASSWORD
-                                        },
-                                        tls: {
-                                            rejectUnauthorized: false
-                                        }
-
-                                    }
-                                );
                                 var mailContext = 'Hello,\n\n';
                                 mailContext += 'Please verify your account by clicking the link: \nhttp:\/\/'
                                 mailContext += req.headers.host + '\/users\/confirmation\/' + token.token + '.\n'
@@ -274,7 +319,7 @@ exports.User_Login = (req, res) => {
                         }
                         res.status(401).json({
                             success: false,
-                            message: "No Auth"
+                            message: "Invalid Email and Password Combination"
                         })
                     })
                 } else {
@@ -291,7 +336,7 @@ exports.User_Login = (req, res) => {
         .catch(err => {
             console.log(err)
             return res.status(401).send({ success: false, message: "Network Error! Please try again!" })
-            
+
         })
 }
 
