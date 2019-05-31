@@ -24,7 +24,7 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cookieParser());
 //app.use(express.static(path.join(__dirname, 'public')));
 app.use('/public',express.static('public'));
-// This is test line for git
+// This is test line for git 2
 //var url = 'mongodb://localhost:27017/leafletapp';
 var url = 'mongodb://127.0.0.1/leafletapp?authSource=admin'
 
