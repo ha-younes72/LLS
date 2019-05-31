@@ -7,6 +7,7 @@ const Token = require('../models/verificationToken')
 const UnStore = require('../models/unVerifiedStore')
 var crypto = require('crypto');
 var nodemailer = require('nodemailer');
+var async = require('async');
 
 exports.User_Get_All = function (req, res, next) {
     //console.log('He wants the info')
