@@ -14,6 +14,10 @@ router.get('/confirmation/:token', Controller.confirmationPost);
 
 router.post('/resend', Controller.resendTokenPost);
 
+router.post('/forgottpass', Controller.forgotPass)
+
+router.get('/resetpass/:token', Controller.resetPass)
+
 router.post('/signin', Controller.User_Login)
 
 router.patch('/:id', checkAuth, Controller.User_Update)

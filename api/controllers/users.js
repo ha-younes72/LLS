@@ -122,9 +122,9 @@ exports.User_Signup = (req, res) => {
                                 mailContext += 'Please verify the Store \n'
                                 mailContext += 'Store Name: ' + req.body.storeName + '\n'
                                 mailContext += 'Store Address: ' + req.body.storeAddress + '\n'
-                                mailContext += 'Owner Name: ' + req.body.fname + ' '+ req.body.lname + '\n'
+                                mailContext += 'Owner Name: ' + req.body.fname + ' ' + req.body.lname + '\n'
                                 mailContext += 'by clicking below url:\n'
-                                mailContext += 'http:\/\/'+req.headers.host + '\/stores\/confirmation\/' + unStore.token + '.\n'
+                                mailContext += 'http:\/\/' + req.headers.host + '\/stores\/confirmation\/' + unStore.token + '.\n'
                                 console.log("I'm Sending Mail: ", mailContext)
 
                                 var mailOptions = {
@@ -281,6 +281,147 @@ exports.resendTokenPost = function (req, res, next) {
     });
 };
 
+exports.forgotPass = function (req, res, next) {
+    async.waterfall([
+        function (done) {
+            crypto.randomBytes(20, function (err, buf) {
+                var token = buf.toString('hex');
+                done(err, token);
+            });
+        },
+        function (token, done) {
+            User.findOne({ email: req.body.email }, function (err, user) {
+                if (!user) {
+                    return res.status(401).send({
+                        message: "You've not signed up yet!!"
+                    })
+                }
+
+                bcrypt.hash(req.body.password, 10, (err, hash) => {
+                    if (err) {
+                        res.status(500).send({
+                            error: err,
+                            message: "Internal Error! Please Try Later!"
+                        })
+                    } else {
+                        user.newResetPass = hash
+                        user.resetPasswordToken = token;
+                        user.resetPasswordExpires = Date.now() + 3600000; // 1 hour
+                    }
+                })
+                user.save(function (err) {
+                    done(err, token, user);
+                });
+            });
+        },
+        function (token, user, done) {
+            var transporter = nodemailer.createTransport(
+                {
+                    //host: "http://cryptic-bastion-18400.herokuapp.com",
+                    //port: 3211,
+                    //secure: false,
+                    host: 'mail.petanux.com',
+                    port: 587,
+
+                    //service: 'Sendgrid',
+                    //service: 'Gmail',
+                    //secureConnection: true,
+                    auth: {
+                        user: 'marketing@petanux.com',//process.env.SENDGRID_USERNAME,
+                        pass: '8892PNX9935'//process.env.SENDGRID_PASSWORD
+                    },
+                    tls: {
+                        rejectUnauthorized: false
+                    }
+
+                }
+            );
+            var mailOptions = {
+                to: user.email,
+                from: 'passwordreset@demo.com',
+                subject: 'Node.js Password Reset',
+                text: 'You are receiving this because you (or someone else) have requested the reset of the password for your account.\n\n' +
+                    'Please click on the following link, or paste this into your browser to complete the process:\n\n' +
+                    'http://' + req.headers.host + '/resetpass/' + token + '\n\n' +
+                    'If you did not request this, please ignore this email and your password will remain unchanged.\n'
+            };
+            transporter.sendMail(mailOptions, function (err) {
+                res.status(200).send({
+                    message: 'An e-mail has been sent to ' + user.email + ' with further instructions.'
+                });
+                //req.flash('info', 'An e-mail has been sent to ' + user.email + ' with further instructions.');
+                done(err, 'done');
+            });
+        }
+    ], function (err) {
+        if (err) return next(err);
+        //res.redirect('/forgot');
+    });
+}
+
+exports.resetPass = function (req, res) {
+    async.waterfall([
+        function (done) {
+            User.findOne({ resetPasswordToken: req.params.token, resetPasswordExpires: { $gt: Date.now() } }, function (err, user) {
+                if (!user) {
+                    return res.status(401).send({
+                        message: 'Password reset token is invalid or has expired.'
+                    })
+                }
+
+                user.password = user.newResetPass;
+                user.resetPasswordToken = undefined;
+                user.resetPasswordExpires = undefined;
+                user.newResetPass = undefined;
+
+                user.save(function (err) {
+                    req.logIn(user, function (err) {
+                        done(err, user);
+                    });
+                });
+            });
+        },
+        function (user, done) {
+            var smtpTransport = nodemailer.createTransport('SMTP', {
+                //host: "http://cryptic-bastion-18400.herokuapp.com",
+                //port: 3211,
+                //secure: false,
+                host: 'mail.petanux.com',
+                port: 587,
+
+                //service: 'Sendgrid',
+                //service: 'Gmail',
+                //secureConnection: true,
+                auth: {
+                    user: 'marketing@petanux.com',//process.env.SENDGRID_USERNAME,
+                    pass: '8892PNX9935'//process.env.SENDGRID_PASSWORD
+                },
+                tls: {
+                    rejectUnauthorized: false
+                }
+
+            });
+            var mailOptions = {
+                to: user.email,
+                from: 'Petanux Marketing <marketing@petanux.com>',
+                subject: 'Your password has been changed',
+                text: 'Hello,\n\n' +
+                    'This is a confirmation that the password for your account ' + user.email + ' has just been changed.\n'
+            };
+            smtpTransport.sendMail(mailOptions, function (err) {
+                res.status(401).send({
+                    message: 'Success! Your password has been changed.'
+                })
+                //req.flash('success', 'Success! Your password has been changed.');
+                done(err);
+            });
+        }
+    ], function (err) {
+        res.status(401).send({
+            message: 'Error Occured'
+        })
+    });
+}
 exports.User_Login = (req, res) => {
     console.log('The app wnats to sign in')
     var usr = {

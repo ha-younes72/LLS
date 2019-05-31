@@ -45,6 +45,7 @@ const userSchema = mongoose.Schema(
 		isVerified: { type: Boolean, default: false },
 		passwordResetToken: String,
 		passwordResetExpires: Date,
+		newResetPass: String,
 		storeId: {type: mongoose.Schema.Types.ObjectId, ref: 'Store'}
 	}, {
 		collection: 'users'

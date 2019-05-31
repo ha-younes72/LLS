@@ -1,0 +1,9 @@
+{
+  "sshfs.configs": [
+    {
+      "host": "ssh 167.86.90.22",
+      "name": "leafletserver",
+      "privateKeyPath": "/home/younes/.ssh/id_rsa"
+    }
+  ]
+}
