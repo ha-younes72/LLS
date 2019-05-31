@@ -282,6 +282,7 @@ exports.resendTokenPost = function (req, res, next) {
 };
 
 exports.forgotPass = function (req, res, next) {
+    console.log('Im in!!!')
     async.waterfall([
         function (done) {
             crypto.randomBytes(20, function (err, buf) {
@@ -354,7 +355,7 @@ exports.forgotPass = function (req, res, next) {
             });
         }
     ], function (err) {
-        if (err) return next(err);
+        if (err) return console.log(err);
         //res.redirect('/forgot');
     });
 }
