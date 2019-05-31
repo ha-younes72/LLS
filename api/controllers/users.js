@@ -283,20 +283,16 @@ exports.resendTokenPost = function (req, res, next) {
 };
 
 exports.forgotPass = function (req, res, next) {
-    console.log('Im in!!!')
     async.waterfall([
         function (done) {
-            console.log('Im in!!!')
             crypto.randomBytes(20, function (err, buf) {
                 var token = buf.toString('hex');
                 done(err, token);
             });
         },
         function (token, done) {
-            console.log('Im in!!!')
             User.findOne({ email: req.body.email }, function (err, user) {
                 if (!user) {
-                    console.log('Im in!!!')
                     return res.status(401).send({
                         message: "You've not signed up yet!!"
                     })
@@ -365,9 +361,12 @@ exports.forgotPass = function (req, res, next) {
 }
 
 exports.resetPass = function (req, res) {
+    console.log('Im In!!!')
     async.waterfall([
         function (done) {
+            console.log('Im In!!!')
             User.findOne({ resetPasswordToken: req.params.token, resetPasswordExpires: { $gt: Date.now() } }, function (err, user) {
+                console.log('Im In!!!')
                 if (!user) {
                     return res.status(401).send({
                         message: 'Password reset token is invalid or has expired.'
@@ -380,9 +379,9 @@ exports.resetPass = function (req, res) {
                 user.newResetPass = undefined;
 
                 user.save(function (err) {
-                    req.logIn(user, function (err) {
+                    /*req.logIn(user, function (err) {
                         done(err, user);
-                    });
+                    });*/
                 });
             });
         },
