@@ -285,14 +285,17 @@ exports.forgotPass = function (req, res, next) {
     console.log('Im in!!!')
     async.waterfall([
         function (done) {
+            console.log('Im in!!!')
             crypto.randomBytes(20, function (err, buf) {
                 var token = buf.toString('hex');
                 done(err, token);
             });
         },
         function (token, done) {
+            console.log('Im in!!!')
             User.findOne({ email: req.body.email }, function (err, user) {
                 if (!user) {
+                    console.log('Im in!!!')
                     return res.status(401).send({
                         message: "You've not signed up yet!!"
                     })
