@@ -298,6 +298,12 @@ exports.forgotPass = function (req, res, next) {
                     })
                 }
 
+                if (!user.isVerified) {
+                    return res.status(401).send({
+                        message: "You've not verified your account yet!!"
+                    })
+                }
+
                 bcrypt.hash(req.body.password, 10, (err, hash) => {
                     if (err) {
                         res.status(500).send({
@@ -310,7 +316,11 @@ exports.forgotPass = function (req, res, next) {
                         user.resetPasswordExpires = Date.now() + 3600000; // 1 hour
                     }
                 })
+                console.log(user)
                 user.save(function (err) {
+                    if(err){
+                        console.log("Coulde not save the user")
+                    }
                     done(err, token, user);
                 });
             });
@@ -365,7 +375,7 @@ exports.resetPass = function (req, res) {
     async.waterfall([
         function (done) {
             console.log('Im In!!!')
-            User.findOne({ resetPasswordToken: req.params.token, resetPasswordExpires: { $gt: Date.now() } }, function (err, user) {
+            User.findOne({ resetPasswordToken: req.params.token, /*resetPasswordExpires: { $gt: Date.now() }*/ }, function (err, user) {
                 console.log('Im In!!!')
                 if (!user) {
                     return res.status(401).send({
