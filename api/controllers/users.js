@@ -310,12 +310,14 @@ exports.forgotPass = function (req, res, next) {
                             error: err,
                             message: "Internal Error! Please Try Later!"
                         })
+                        console.log("Hash Internal Error", err)
                     } else {
                         user.newResetPass = hash
                         user.resetPasswordToken = token;
                         user.resetPasswordExpires = Date.now() + 3600000; // 1 hour
                     }
                 })
+                user.resetPasswordToken = token;
                 console.log(user)
                 user.save(function (err) {
                     if(err){
