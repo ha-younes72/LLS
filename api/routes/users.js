@@ -20,7 +20,7 @@ router.get('/resetpass/:token', Controller.resetPass)
 
 router.post('/signin', Controller.User_Login)
 
-router.patch('/:id', checkAuth, Controller.User_Update)
+router.patch('/',  Controller.User_Update)
 
 router.delete('/:id', checkAuth, Controller.User_Delete)
 

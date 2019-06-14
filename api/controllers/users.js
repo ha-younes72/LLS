@@ -107,6 +107,7 @@ exports.User_Signup = (req, res) => {
 
                         if (req.body.storeName) {
                             const unStore = new UnStore({
+                                _id: new mongoose.Types.ObjectId(),
                                 _userId: newUsr._id,
                                 name: req.body.storeName,
                                 address: req.body.storeAddress,
@@ -312,19 +313,41 @@ exports.forgotPass = function (req, res, next) {
                         })
                         console.log("Hash Internal Error", err)
                     } else {
+                        console.log("I'm Here")
+                        User.updateOne(
+                            { _id: user._id},
+                            {
+                                newResetPass : hash,
+                                passwordResetToken : token,
+                                passwordResetExpires : Date.now() + 3600000 // 1 hour
+                            },
+                            {
+                                multi:true
+                            },
+                            function(err, numberAffected){ 
+                                if(err){
+                                    console.log("Coulde not save the user")
+                                }
+                                done(err, token, user); 
+                            }
+                        )
+                        /*user.fname = "Test1";
                         user.newResetPass = hash
                         user.resetPasswordToken = token;
                         user.resetPasswordExpires = Date.now() + 3600000; // 1 hour
+                        user.fname = "Test2";
+                        user.resetPasswordToken = token;
+                        console.log(user)
+
+                        user.save(function (err) {
+                            if(err){
+                                console.log("Coulde not save the user")
+                            }
+                            done(err, token, user);
+                        });
+                        */
                     }
                 })
-                user.resetPasswordToken = token;
-                console.log(user)
-                user.save(function (err) {
-                    if(err){
-                        console.log("Coulde not save the user")
-                    }
-                    done(err, token, user);
-                });
             });
         },
         function (token, user, done) {
@@ -377,7 +400,7 @@ exports.resetPass = function (req, res) {
     async.waterfall([
         function (done) {
             console.log('Im In!!!')
-            User.findOne({ resetPasswordToken: req.params.token, /*resetPasswordExpires: { $gt: Date.now() }*/ }, function (err, user) {
+            User.findOne({ passwordResetToken: req.params.token, passwordResetExpires: { $gt: Date.now() } }, function (err, user) {
                 console.log('Im In!!!')
                 if (!user) {
                     return res.status(401).send({
@@ -386,37 +409,39 @@ exports.resetPass = function (req, res) {
                 }
 
                 user.password = user.newResetPass;
-                user.resetPasswordToken = undefined;
-                user.resetPasswordExpires = undefined;
+                user.passwordResetToken = undefined;
+                user.passwordResetExpires = undefined;
                 user.newResetPass = undefined;
 
                 user.save(function (err) {
                     /*req.logIn(user, function (err) {
                         done(err, user);
                     });*/
+                    done(err, user);
                 });
             });
         },
         function (user, done) {
-            var smtpTransport = nodemailer.createTransport('SMTP', {
-                //host: "http://cryptic-bastion-18400.herokuapp.com",
-                //port: 3211,
-                //secure: false,
-                host: 'mail.petanux.com',
-                port: 587,
+            var smtpTransport = nodemailer.createTransport({
+                    //host: "http://cryptic-bastion-18400.herokuapp.com",
+                    //port: 3211,
+                    //secure: false,
+                    host: 'mail.petanux.com',
+                    port: 587,
 
-                //service: 'Sendgrid',
-                //service: 'Gmail',
-                //secureConnection: true,
-                auth: {
-                    user: 'marketing@petanux.com',//process.env.SENDGRID_USERNAME,
-                    pass: '8892PNX9935'//process.env.SENDGRID_PASSWORD
-                },
-                tls: {
-                    rejectUnauthorized: false
+                    //service: 'Sendgrid',
+                    //service: 'Gmail',
+                    //secureConnection: true,
+                    auth: {
+                        user: 'marketing@petanux.com',//process.env.SENDGRID_USERNAME,
+                        pass: '8892PNX9935'//process.env.SENDGRID_PASSWORD
+                    },
+                    tls: {
+                        rejectUnauthorized: false
+                    }
+
                 }
-
-            });
+            );
             var mailOptions = {
                 to: user.email,
                 from: 'Petanux Marketing <marketing@petanux.com>',
@@ -438,6 +463,7 @@ exports.resetPass = function (req, res) {
         })
     });
 }
+
 exports.User_Login = (req, res) => {
     console.log('The app wnats to sign in')
     var usr = {
@@ -467,6 +493,18 @@ exports.User_Login = (req, res) => {
                             }, "secretprivatekey", {
                                     expiresIn: '1h'
                                 })
+                            
+                            User.updateOne(
+                                {_id: doc[0]._id},
+                                {$push: {loginAt: Date.now()}},
+                                function (err, num) {
+                                    if (err) {
+                                        console.log("Login Update Error", err)
+                                    }
+                                }
+                                //{loginAt: []}
+                            )
+
                             return res.status(200).json({
                                 success: true,
                                 token: token,
@@ -498,29 +536,32 @@ exports.User_Login = (req, res) => {
 }
 
 exports.User_Update = (res, req, next) => {
+    console.log("I'm Here")
     /*
     [
         {"propName": 'name', "value": "NewValue"}
     ]
     */
-    const id = req.params.id;
+    const id = req.body.id;
     const updateOps = {};
     for (const ops of req.body) {
         updateOps[ops.propName] = ops.value;
     }
+    console.log(updateOps)
     User.update({ _id: id }, { $set: updateOps })
         .exec()
         .then(result => {
             console.log(result);
             res.status(200).json({
-                message: 'User Updated',
-                url: 'http://10.42.0.1:3210/users/' + id
+                message: 'Changes Saved',
+                //url: 'http://10.42.0.1:3210/users/' + id
             });
         })
         .catch(err => {
             console.log(err);
             res.status(500).json({
-                error: err
+                error: err,
+                message: 'Error occuared, Please try again later.'
             })
         })
 }
